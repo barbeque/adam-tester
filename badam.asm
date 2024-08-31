@@ -58,7 +58,9 @@ entry:
     ld c, $02   ; light green background (2) black text (0)
     call WRITE_REGISTER
 
-BLANK_ON
+    ; enable display
+    ld bc, $01e0
+    call WRITE_REGISTER
     
     ; write text
     ld a, VDP_PATTERN_NAMETABLE
@@ -76,15 +78,3 @@ loop:
     ; TODO: Count up how much RAM we actually have in each mode
 
 HELLO_WORLD: .text "HELLO WORLD"
-
-.macro BLANK_ON
-    ld b, $01
-    ld c, $e0
-    call WRITE_REGISTER
-.endm
-
-.macro BLANK_OFF
-    ld b, $01
-    ld c, $c0
-    call WRITE_REGISTER
-.endm
