@@ -45,12 +45,20 @@ entry:
     ld a, $00
     call FILL_VRAM ; wipe out video ram
 
+    ; fill in some colours
+    ld hl, MODE1_PATTERN_COLOR_TABLE
+    ld de, 32
+    ld a, $f4
+    call FILL_VRAM ; see if this does anything
+
     call LOAD_ASCII ; load ascii font into vram
 
     ; set text-mode foreground and background colours
     ld b, $07   ; tc bc fields
     ld c, $02   ; light green background (2) black text (0)
     call WRITE_REGISTER
+
+BLANK_ON
     
     ; write text
     ld a, VDP_PATTERN_NAMETABLE
@@ -68,7 +76,15 @@ loop:
     ; TODO: Count up how much RAM we actually have in each mode
 
 HELLO_WORLD: .text "HELLO WORLD"
-COLORS:
-    .rept 32
-    .db $f4
-    .endm
+
+.macro BLANK_ON
+    ld b, $01
+    ld c, $e0
+    call WRITE_REGISTER
+.endm
+
+.macro BLANK_OFF
+    ld b, $01
+    ld c, $c0
+    call WRITE_REGISTER
+.endm
