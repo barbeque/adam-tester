@@ -51,7 +51,7 @@ entry:
     ld b, $07   ; tc bc fields
     ld c, $02   ; light green background (2) black text (0)
     call WRITE_REGISTER
-
+    
     ; write text
     ld a, VDP_PATTERN_NAMETABLE
     ld de, 0
@@ -68,3 +68,7 @@ loop:
     ; TODO: Count up how much RAM we actually have in each mode
 
 HELLO_WORLD: .text "HELLO WORLD"
+COLORS:
+    .rept 32
+    .db $f4
+    .endm
