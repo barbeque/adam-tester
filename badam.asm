@@ -14,7 +14,12 @@ IRQ_INT_VECT: .dw $0000
 NMI_INT_VECT: .dw $0000
 
 .org $8024
-GAME_NAME: .ascii "LEADEDSOLDER.COM/ADAM TESTER/2024"
+GAME_NAME: .ascii "LEADEDSOLDER.COM/ADAM TESTER!/2024"
 
 entry:
     jp entry
+
+    ; TODO: Figure out how to print text
+    ; TODO: Switch memory map into the various ADAM modes and do a RAM test
+    ; TODO: Basic read/write
+    ; TODO: Count up how much RAM we actually have in each mode
