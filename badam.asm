@@ -112,7 +112,7 @@ entry:
 
 cv_test_start:
     ; tell them the test is ongoing in case it freezes
-    ld bc, 11
+    ld bc, 10
     ld de, MODE1_PATTERN_NAME_TABLE + 17
     ld hl, TEST_ONGOING
     call WRITE_VRAM
@@ -128,9 +128,10 @@ cv_test_start:
     ; is okay
     ld de, $7000
     ld bc, $3ff
-before_call:
+    ld hl, after_call_cv
+before_call_cv:
     jp basic_memory_test
-after_call:
+after_call_cv:
     cp a, $1
     jr z, cv_test_failed
     ei
@@ -141,8 +142,43 @@ cv_test_passed:
     ld hl, TEST_PASSED
     call WRITE_VRAM
 
-    ; jump to next test
+    ; off to the next test
 
+super_cv_test_start:
+    ; switch to "super CV" mode (OS7 bios + 24k of ram, holy cow)
+    ld a, MEMORY_MAPPER_LO_OS7_24K_RAM | MEMORY_MAPPER_HI_CART
+    out (ADAM_MEMORY_MAPPER_PORT), a
+    ; a whole new world awaits.
+
+    ; "This option contains OS 7 and
+    ; 24K of ADAM's intrinsic RAM. OS 7 is the 8K ROM installed in
+    ; ColecoVision and ADAM. In Expansion Module #3, this ROM is
+    ; in the ColecoVision. The description of the 32K Intrinsic
+    ; RAM also applies to this 24K intrinsic RAM."
+
+    ; This is not to be confused with "Super Games," which have 56K of RAM
+    ; by running almost exclusively from RAM and expose EOS at the top alongside OS7.
+
+    ld bc, 10
+    ld de, MODE1_PATTERN_NAME_TABLE + 17 + 32
+    ld hl, TEST_ONGOING
+    call WRITE_VRAM
+
+    ld de, $2000
+    ld bc, $5fff ; wow!!!
+    ld hl, after_call_24k
+before_call_24k:
+    jp basic_memory_test
+after_call_24k:
+    cp a, $1
+    jr z, test_failed_24k
+    ei
+test_passed_24k:
+    ; write text
+    ld bc, 11
+    ld de, MODE1_PATTERN_NAME_TABLE + 17 + 32
+    ld hl, TEST_PASSED
+    call WRITE_VRAM
 spin:
     jr spin
     ; TODO: Switch memory map into the various ADAM modes and do a RAM test
@@ -153,6 +189,15 @@ cv_test_failed:
     ; write text (smashed work area)
     ld bc, 11
     ld de, MODE1_PATTERN_NAME_TABLE + 17
+    ld hl, TEST_FAILED
+    call WRITE_VRAM
+
+    jr spin
+
+test_failed_24k:
+    ; write text (smashed work area)
+    ld bc, 11
+    ld de, MODE1_PATTERN_NAME_TABLE + 17 + 32
     ld hl, TEST_FAILED
     call WRITE_VRAM
 
@@ -170,6 +215,7 @@ TEST_ONGOING: .text "TESTING..."
 basic_memory_test:
     ; de - start of range
     ; bc - length of range
+    ; hl - return address
     ; returns A - zero if success, one if failed
     ; TODO: Spinner
 _basic_memory_test_loop:
@@ -192,7 +238,7 @@ _basic_memory_test_loop:
     jp nz, _basic_memory_test_loop
 _basic_memory_test_end:
     ld a, 0
-    jp after_call ; do not rely on the stack being here
+    jp (hl) ; do not rely on the stack being here
 _basic_memory_test_failed:
     ld a, 1 ; failure
-    jp after_call
+    jp (hl)
