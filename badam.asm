@@ -243,6 +243,8 @@ test_failed_adam_low:
     ld a, MEMORY_MAPPER_LO_OS7_24K_RAM | MEMORY_MAPPER_HI_CART
     out (ADAM_MEMORY_MAPPER_PORT), a
 
+    ; TODO: Rescue and print DE as the failure location?
+
     ld bc, 11
     ld de, MODE1_PATTERN_NAME_TABLE + 17 + 32 + 32
     ld hl, TEST_FAILED
