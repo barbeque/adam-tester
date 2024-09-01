@@ -21,6 +21,7 @@ GAME_NAME: .ascii "LEADEDSOLDER.COM/ADAM TESTER!/2024"
 #define INIT_TABLEP $1f8b
 #define LOAD_ASCII  $1f7f
 #define PUT_VRAM    $1fbe ; A = table code, DE = start index, HL = data, iy = count
+#define WRITE_VRAM  $1fdf ; HL = buffer, DE = destination in VRAM, BC = count
 #define WRITE_REGISTER $1fd9 ; B = register, C = value
 
 ; stolen from os7lib - https://github.com/tschak909/os7lib/blob/c2c87aa4f77016f3b2f8383d735089e64423cd1f/src/os7.h#L429
@@ -71,7 +72,7 @@ entry:
     call WRITE_REGISTER
 
     ; enable display
-    ld bc, $01e0
+    ld bc, $01c0 ; no interrupts
     call WRITE_REGISTER
     
     ; write text
@@ -79,7 +80,9 @@ entry:
     ld de, 0
     ld hl, HELLO_WORLD
     ld iy, 11
-    call PUT_VRAM ; this is writing to VRAM, but it's not showing up
+    call PUT_VRAM 
+
+    di ; this is gonna be ugly
 
 test_start:
     
@@ -93,20 +96,19 @@ test_start:
     ; we'll do a basic memory test to check if the colecovision ram
     ; is okay
     ld de, $7000
-    ld bc, $03ff
+    ld bc, $3ff
 before_call:
-    call basic_memory_test
-
-    cp $1
+    jp basic_memory_test
+after_call:
+    cp a, $1
     jr z, _test_failed
-
+    ei
 test_passed:
     ; write text
-    ld a, VDP_PATTERN_NAMETABLE
-    ld de, 0
+    ld bc, 11
+    ld de, MODE1_PATTERN_NAME_TABLE
     ld hl, TEST_PASSED
-    ld iy, 11
-    call PUT_VRAM ; this is writing to VRAM, but it's not showing up
+    call WRITE_VRAM
 
 spin:
     jr spin
@@ -120,7 +122,7 @@ _test_failed:
     ld de, 0
     ld hl, TEST_FAILED
     ld iy, 11
-    call PUT_VRAM ; this is writing to VRAM, but it's not showing up
+    call PUT_VRAM 
     jr spin
 
 HELLO_WORLD: .text "HELLO WORLD"
@@ -136,13 +138,13 @@ _basic_memory_test_loop:
     ld a, $cc ; TODO: Use more than this
     ld (de), a
     ld a, (de)
-    cp $cc
+    cp a, $cc
     jr nz, _basic_memory_test_failed
 
     ld a, $55
     ld (de), a
     ld a, (de)
-    cp $55
+    cp a, $55
     jr nz, _basic_memory_test_failed
 
     inc de
@@ -152,7 +154,7 @@ _basic_memory_test_loop:
     jp nz, _basic_memory_test_loop
 _basic_memory_test_end:
     ld a, 0
-    ret
+    jp after_call ; do not rely on the stack being here
 _basic_memory_test_failed:
-    ld a, 1
-    ret
+    ld a, 1 ; failure
+    jp after_call
