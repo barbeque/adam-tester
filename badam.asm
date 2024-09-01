@@ -111,6 +111,11 @@ entry:
     ; DANGER: past this point, consider the stack and BIOS work area wrecked
 
 cv_test_start:
+    ; tell them the test is ongoing in case it freezes
+    ld bc, 11
+    ld de, MODE1_PATTERN_NAME_TABLE + 17
+    ld hl, TEST_ONGOING
+    call WRITE_VRAM
     
     ; right now we are in the "cartridge" memory map,
     ; where we still delude ourselves into thinking
@@ -160,6 +165,7 @@ TEST_NAME_ADAM_UPPER: .text "ADAM 32K UPPER"
 TEST_NAME_SUPER_CV: .text "OS7+24K LOWER"
 TEST_FAILED: .text "TEST FAILED"
 TEST_PASSED: .text "TEST PASSED"
+TEST_ONGOING: .text "TESTING..."
 
 basic_memory_test:
     ; de - start of range
