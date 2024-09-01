@@ -375,7 +375,7 @@ print_hex:
     pop hl
 
     ; print the $ first, of course
-    ld a, $04
+    ld a, '$'
     out (VDP_DATA), a
 #local
 _print_hex_inner:
@@ -427,10 +427,10 @@ get_hex_digit:
     cp a, 10
     jr c, _get_hex_digit_less_than_ten
 ; greater than or equal to ten
-    ld a, $41 ; position of ascii 'A' in our font
+    ld a, 'A'
     jr _get_hex_digit_finish
 _get_hex_digit_less_than_ten:
-    ld a, $30 ; position of ascii '0' in our font
+    ld a, '0'
     jr _get_hex_digit_finish
 _get_hex_digit_finish:
     ;sub 10
