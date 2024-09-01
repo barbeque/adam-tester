@@ -50,6 +50,10 @@ GAME_NAME: .ascii "LEADEDSOLDER.COM/ADAM TESTER!/2024"
 #define MEMORY_MAPPER_HI_EXTRAM 0b1000
 #define MEMORY_MAPPER_HI_CART   0b1100
 
+; TMS99xx ports, direct access
+#define VDP_DATA $40
+#define VDP_REGISTERS $41
+
 entry:
     call MODE_1 ; "text mode"
 
@@ -225,6 +229,12 @@ spin:
     ; TODO: Count up how much RAM we actually have in each mode
 
 cv_test_failed:
+    ; write last loc (still in DE)
+    ld hl, de
+    ld b, 32 - 5
+    ld c, 0
+    call print_hex
+
     ; write text (smashed work area)
     ld bc, 11
     ld de, MODE1_PATTERN_NAME_TABLE + 17
@@ -234,6 +244,12 @@ cv_test_failed:
     jr spin
 
 test_failed_24k:
+    ; write last loc (still in DE)
+    ld hl, de
+    ld b, 32 - 5
+    ld c, 1
+    call print_hex
+
     ; write text (smashed work area)
     ld bc, 11
     ld de, MODE1_PATTERN_NAME_TABLE + 17 + 32
@@ -247,7 +263,11 @@ test_failed_adam_low:
     ld a, MEMORY_MAPPER_LO_OS7_24K_RAM | MEMORY_MAPPER_HI_CART
     out (ADAM_MEMORY_MAPPER_PORT), a
 
-    ; TODO: Rescue and print DE as the failure location?
+    ; write failed loc (still in DE)
+    ld hl, de
+    ld b, 32 - 5
+    ld c, 2
+    call print_hex
 
     ld bc, 11
     ld de, MODE1_PATTERN_NAME_TABLE + 17 + 32 + 32
@@ -296,4 +316,123 @@ _basic_memory_test_failed:
     ld a, 1 ; failure
     jp (hl)
 
+.macro calculate_write_address_from_xy
+    ; Sets the write address based on a tile position on screen.
+    ; assume that B, C are X, Y
+    ; obliterates BC, HL
+    push de
+    push bc
+    ld d, c ; row counter ("Y")
+    ld e, 32 ;TILEMAP_WIDTH
+    call DumbMultiply ; FIXME: OPTIM: I suspect we don't really need this; we can bit-shift, because width is a power of 2, but who cares?
+    pop bc
+    ld c, b ; extend b to 16-bit bc so we can add to hl
+    ld b, 0 ; is it faster to just do OR?
+    add hl, bc ; have to add 16-bit...
+    ld bc, MODE1_PATTERN_NAME_TABLE ;TILES_BASE
+    pop de
+.endm
+
+SetVDPReadAddress:
+    ld c, 0
+    jr _SetVDPAddress
+SetVDPWriteAddress:
+    ld c, 64
+_SetVDPAddress:
+    ; set vdp read/write address from HL
+    ld a, l
+    out (VDP_REGISTERS), a
+    ld a, h
+    or c ; set 0x40 'write' bit potentially
+    out (VDP_REGISTERS), a
+    ret
+
+DumbMultiply:
+    ; HL = D * E
+    ;   OBLITERATES B
+    ld hl, 0
+    ld a, d
+    or a
+    ret z
+    ld b, d
+    ld d, h
+#local
+_DumbMultiplyLoop:
+    add hl, de
+    djnz _DumbMultiplyLoop
+#endlocal
+    ret
+
 ; TODO: hex print routine of some kind for writing fail locations
+print_hex:
+    ; arguments:
+    ;   B - X
+    ;   C - Y
+    ;   HL - value
+    push hl
+    calculate_write_address_from_xy
+    call SetVDPWriteAddress
+    pop hl
+
+    ; print the $ first, of course
+    ld a, $04
+    out (VDP_DATA), a
+#local
+_print_hex_inner:
+    ; thanks to https://chilliant.com/z80shift.html
+    ld de, hl
+    ; first digit: shift right 12
+    srl h
+    srl h
+    srl h
+    srl h
+    ld l, h
+    ld h, 0
+    ld a, l
+    call get_hex_digit
+    out (VDP_DATA), a
+    ld hl, de ; restore saved value
+    ; second digit: shift right 8
+    ld l, h
+    ld h, 0
+    ld a, l
+    call get_hex_digit
+    out (VDP_DATA), a
+    ld hl, de
+    ; third digit: shift right 4
+    srl h
+    rr l
+    srl h
+    rr l
+    srl h
+    rr l
+    srl h
+    rr l
+    ld a, l
+    call get_hex_digit
+    out (VDP_DATA), a
+    ; fourth digit: the remainder
+    ld hl, de
+    ld a, l
+    call get_hex_digit
+    out (VDP_DATA), a
+#endlocal
+    ret
+
+get_hex_digit:
+    ; arguments:
+    ;   A - nibble (4-bit value, but we'll use the whole byte)
+    and $f ; n & 0xf
+    ld b, a
+    cp a, 10
+    jr c, _get_hex_digit_less_than_ten
+; greater than or equal to ten
+    ld a, $41 ; position of ascii 'A' in our font
+    jr _get_hex_digit_finish
+_get_hex_digit_less_than_ten:
+    ld a, $30 ; position of ascii '0' in our font
+    jr _get_hex_digit_finish
+_get_hex_digit_finish:
+    ;sub 10
+    add b
+    ret 
