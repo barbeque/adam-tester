@@ -37,6 +37,18 @@ GAME_NAME: .ascii "LEADEDSOLDER.COM/ADAM TESTER!/2024"
 #define VDP_PATTERN_GENERATOR $3
 #define VDP_PATTERN_COLOUR $4
 
+; adam memory mapper
+#define ADAM_MEMORY_MAPPER_PORT $f7
+#define MEMORY_MAPPER_LO_EOS 0b00
+#define MEMORY_MAPPER_LO_32K_INTRAM 0b01
+#define MEMORY_MAPPER_LO_EXTRAM 0b10
+#define MEMORY_MAPPER_LO_OS7_24K_RAM 0b11 ; ooh
+
+#define MEMORY_MAPPER_HI_32K_INTRAM 0b0000
+#define MEMORY_MAPPER_HI_EXTROM 0b0100
+#define MEMORY_MAPPER_HI_EXTRAM 0b1000
+#define MEMORY_MAPPER_HI_CART   0b1100
+
 entry:
     call MODE_1 ; "text mode"
 
@@ -69,12 +81,78 @@ entry:
     ld iy, 11
     call PUT_VRAM ; this is writing to VRAM, but it's not showing up
 
-loop:
-    jp loop
+test_start:
+    
+    ; right now we are in the "cartridge" memory map,
+    ; where we still delude ourselves into thinking
+    ; we are a mere colecovision:
+    ;   0000 - 2000: OS 7
+    ;   2001 - 6fff: not for us to use
+    ;   7000 - 73ff: colecovision 1k ram
+    ;   8000 - ffff: cartridge rom
+    ; we'll do a basic memory test to check if the colecovision ram
+    ; is okay
+    ld de, $7000
+    ld bc, $03ff
+before_call:
+    call basic_memory_test
 
-    ; TODO: Figure out how to print text
+    cp $1
+    jr z, _test_failed
+
+test_passed:
+    ; write text
+    ld a, VDP_PATTERN_NAMETABLE
+    ld de, 0
+    ld hl, TEST_PASSED
+    ld iy, 11
+    call PUT_VRAM ; this is writing to VRAM, but it's not showing up
+
+spin:
+    jr spin
     ; TODO: Switch memory map into the various ADAM modes and do a RAM test
     ; TODO: Basic read/write
     ; TODO: Count up how much RAM we actually have in each mode
 
+_test_failed:
+    ; write text
+    ld a, VDP_PATTERN_NAMETABLE
+    ld de, 0
+    ld hl, TEST_FAILED
+    ld iy, 11
+    call PUT_VRAM ; this is writing to VRAM, but it's not showing up
+    jr spin
+
 HELLO_WORLD: .text "HELLO WORLD"
+TEST_FAILED: .text "TEST FAILED"
+TEST_PASSED: .text "TEST PASSED"
+
+basic_memory_test:
+    ; de - start of range
+    ; bc - length of range
+    ; returns A - zero if success, one if failed
+    ; TODO: Spinner
+_basic_memory_test_loop:
+    ld a, $cc ; TODO: Use more than this
+    ld (de), a
+    ld a, (de)
+    cp $cc
+    jr nz, _basic_memory_test_failed
+
+    ld a, $55
+    ld (de), a
+    ld a, (de)
+    cp $55
+    jr nz, _basic_memory_test_failed
+
+    inc de
+    dec bc
+    ld a, b
+    or c
+    jp nz, _basic_memory_test_loop
+_basic_memory_test_end:
+    ld a, 0
+    ret
+_basic_memory_test_failed:
+    ld a, 1
+    ret
