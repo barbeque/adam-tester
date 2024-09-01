@@ -78,14 +78,39 @@ entry:
     ; write text
     ld a, VDP_PATTERN_NAMETABLE
     ld de, 0
-    ld hl, HELLO_WORLD
+    ld hl, TEST_NAME_COLECOVISION
     ld iy, 11
+    call PUT_VRAM 
+
+    ; write test names
+    ld a, VDP_PATTERN_NAMETABLE
+    ld de, 0
+    ld hl, TEST_NAME_COLECOVISION
+    ld iy, 15
+    call PUT_VRAM 
+
+    ld a, VDP_PATTERN_NAMETABLE
+    ld de, 32
+    ld hl, TEST_NAME_SUPER_CV
+    ld iy, 13
+    call PUT_VRAM 
+
+    ld a, VDP_PATTERN_NAMETABLE
+    ld de, 64
+    ld hl, TEST_NAME_ADAM_LOWER
+    ld iy, 14
+    call PUT_VRAM 
+
+    ld a, VDP_PATTERN_NAMETABLE
+    ld de, 96
+    ld hl, TEST_NAME_ADAM_UPPER
+    ld iy, 14
     call PUT_VRAM 
 
     di
     ; DANGER: past this point, consider the stack and BIOS work area wrecked
 
-test_start:
+cv_test_start:
     
     ; right now we are in the "cartridge" memory map,
     ; where we still delude ourselves into thinking
@@ -102,14 +127,16 @@ before_call:
     jp basic_memory_test
 after_call:
     cp a, $1
-    jr z, _test_failed
+    jr z, cv_test_failed
     ei
-test_passed:
+cv_test_passed:
     ; write text
     ld bc, 11
-    ld de, MODE1_PATTERN_NAME_TABLE
+    ld de, MODE1_PATTERN_NAME_TABLE + 17
     ld hl, TEST_PASSED
     call WRITE_VRAM
+
+    ; jump to next test
 
 spin:
     jr spin
@@ -117,16 +144,20 @@ spin:
     ; TODO: Basic read/write
     ; TODO: Count up how much RAM we actually have in each mode
 
-_test_failed:
-    ; write text
-    ld a, VDP_PATTERN_NAMETABLE
-    ld de, 0
+cv_test_failed:
+    ; write text (smashed work area)
+    ld bc, 11
+    ld de, MODE1_PATTERN_NAME_TABLE + 17
     ld hl, TEST_FAILED
-    ld iy, 11
-    call PUT_VRAM 
+    call WRITE_VRAM
+
     jr spin
 
 HELLO_WORLD: .text "HELLO WORLD"
+TEST_NAME_COLECOVISION: .text "COLECOVISION 1K"
+TEST_NAME_ADAM_LOWER: .text "ADAM 32K LOWER"
+TEST_NAME_ADAM_UPPER: .text "ADAM 32K UPPER"
+TEST_NAME_SUPER_CV: .text "OS7+24K LOWER"
 TEST_FAILED: .text "TEST FAILED"
 TEST_PASSED: .text "TEST PASSED"
 
