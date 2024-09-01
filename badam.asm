@@ -179,6 +179,41 @@ test_passed_24k:
     ld de, MODE1_PATTERN_NAME_TABLE + 17 + 32
     ld hl, TEST_PASSED
     call WRITE_VRAM
+
+adam_lower_test_start:
+    ; switch to "Adam lower 32K RAM" mode
+    ; this option, obviously, keeps us from being able to access
+    ; the OS7 BIOS, so we're going to have to switch back to write
+    ; our own text after this
+    ld bc, 10
+    ld de, MODE1_PATTERN_NAME_TABLE + 17 + 32 + 32
+    ld hl, TEST_ONGOING
+    call WRITE_VRAM
+
+    ; TODO: It would be cool to test expansion RAM but I don't have any.
+    ld a, MEMORY_MAPPER_LO_32K_INTRAM | MEMORY_MAPPER_HI_CART
+    out (ADAM_MEMORY_MAPPER_PORT), a
+
+    ld de, $0000
+    ld bc, $7fff ; wow!!!
+    ld hl, after_call_adam_low
+before_call_adam_low:
+    jp basic_memory_test
+after_call_adam_low:
+    cp a, $1
+    jr z, test_failed_adam_low
+    ei
+test_passed_adam_low:
+    ; get back to OS7
+    ld a, MEMORY_MAPPER_LO_OS7_24K_RAM | MEMORY_MAPPER_HI_CART
+    out (ADAM_MEMORY_MAPPER_PORT), a
+    
+    ; write text
+    ld bc, 11
+    ld de, MODE1_PATTERN_NAME_TABLE + 17 + 32 + 32
+    ld hl, TEST_PASSED
+    call WRITE_VRAM
+
 spin:
     jr spin
     ; TODO: Switch memory map into the various ADAM modes and do a RAM test
@@ -198,6 +233,18 @@ test_failed_24k:
     ; write text (smashed work area)
     ld bc, 11
     ld de, MODE1_PATTERN_NAME_TABLE + 17 + 32
+    ld hl, TEST_FAILED
+    call WRITE_VRAM
+
+    jr spin
+
+test_failed_adam_low:
+    ; write text (we have to get back to OS7 first)
+    ld a, MEMORY_MAPPER_LO_OS7_24K_RAM | MEMORY_MAPPER_HI_CART
+    out (ADAM_MEMORY_MAPPER_PORT), a
+
+    ld bc, 11
+    ld de, MODE1_PATTERN_NAME_TABLE + 17 + 32 + 32
     ld hl, TEST_FAILED
     call WRITE_VRAM
 
