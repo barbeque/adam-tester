@@ -82,7 +82,8 @@ entry:
     ld iy, 11
     call PUT_VRAM 
 
-    di ; this is gonna be ugly
+    di
+    ; DANGER: past this point, consider the stack and BIOS work area wrecked
 
 test_start:
     
