@@ -214,10 +214,14 @@ test_passed_adam_low:
     ld hl, TEST_PASSED
     call WRITE_VRAM
 
+    ; TODO: Figure out why AdamLow is instantly failing (looks like ROM is not getting demapped?)
+
+    ; TODO: ADAM high means we need to copy a kernel into RAM somewhere
+    ; and somehow not obliterate it, but luckily we just tested low to
+    ; make sure it works reliably?
+
 spin:
     jr spin
-    ; TODO: Switch memory map into the various ADAM modes and do a RAM test
-    ; TODO: Basic read/write
     ; TODO: Count up how much RAM we actually have in each mode
 
 cv_test_failed:
@@ -291,3 +295,5 @@ _basic_memory_test_end:
 _basic_memory_test_failed:
     ld a, 1 ; failure
     jp (hl)
+
+; TODO: hex print routine of some kind for writing fail locations
