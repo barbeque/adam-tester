@@ -304,6 +304,8 @@ _basic_memory_test_loop:
     cp a, $55
     jr nz, _basic_memory_test_failed
 
+    ; TODO: Check for mirroring here
+
     inc de
     dec bc
     ld a, b
@@ -364,7 +366,6 @@ _DumbMultiplyLoop:
 #endlocal
     ret
 
-; TODO: hex print routine of some kind for writing fail locations
 print_hex:
     ; arguments:
     ;   B - X
