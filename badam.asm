@@ -54,6 +54,14 @@ GAME_NAME: .ascii "LEADEDSOLDER.COM/ADAM TESTER!/2024"
 #define VDP_DATA $be
 #define VDP_REGISTERS $bf
 
+.macro put_string xyloc, ptr_string, length
+    ld a, VDP_PATTERN_NAMETABLE
+    ld de, \xyloc
+    ld hl, \ptr_string
+    ld iy, \length
+    call PUT_VRAM 
+.endm
+
 entry:
     call MODE_1 ; "text mode"
 
@@ -79,37 +87,11 @@ entry:
     ld bc, $01c0 ; no interrupts
     call WRITE_REGISTER
     
-    ; write text
-    ld a, VDP_PATTERN_NAMETABLE
-    ld de, 0
-    ld hl, TEST_NAME_COLECOVISION
-    ld iy, 11
-    call PUT_VRAM 
-
     ; write test names
-    ld a, VDP_PATTERN_NAMETABLE
-    ld de, 0
-    ld hl, TEST_NAME_COLECOVISION
-    ld iy, 15
-    call PUT_VRAM 
-
-    ld a, VDP_PATTERN_NAMETABLE
-    ld de, 32
-    ld hl, TEST_NAME_SUPER_CV
-    ld iy, 13
-    call PUT_VRAM 
-
-    ld a, VDP_PATTERN_NAMETABLE
-    ld de, 64
-    ld hl, TEST_NAME_ADAM_LOWER
-    ld iy, 14
-    call PUT_VRAM 
-
-    ld a, VDP_PATTERN_NAMETABLE
-    ld de, 96
-    ld hl, TEST_NAME_ADAM_UPPER
-    ld iy, 14
-    call PUT_VRAM 
+    put_string 0, TEST_NAME_COLECOVISION, 15
+    put_string 32, TEST_NAME_SUPER_CV, 13
+    put_string 64, TEST_NAME_ADAM_LOWER, 14
+    put_string 96, TEST_NAME_ADAM_UPPER, 14
 
     di
     ; DANGER: past this point, consider the stack and BIOS work area wrecked
