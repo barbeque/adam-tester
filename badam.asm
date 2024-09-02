@@ -51,8 +51,8 @@ GAME_NAME: .ascii "LEADEDSOLDER.COM/ADAM TESTER!/2024"
 #define MEMORY_MAPPER_HI_CART   0b1100
 
 ; TMS99xx ports, direct access
-#define VDP_DATA $40
-#define VDP_REGISTERS $41
+#define VDP_DATA $be
+#define VDP_REGISTERS $bf
 
 entry:
     call MODE_1 ; "text mode"
@@ -117,7 +117,7 @@ entry:
 cv_test_start:
     ; tell them the test is ongoing in case it freezes
     ld bc, 10
-    ld de, MODE1_PATTERN_NAME_TABLE + 17
+    ld de, MODE1_PATTERN_NAME_TABLE + 16
     ld hl, TEST_ONGOING
     call WRITE_VRAM
     
@@ -142,7 +142,7 @@ after_call_cv:
 cv_test_passed:
     ; write text
     ld bc, 11
-    ld de, MODE1_PATTERN_NAME_TABLE + 17
+    ld de, MODE1_PATTERN_NAME_TABLE + 16
     ld hl, TEST_PASSED
     call WRITE_VRAM
 
@@ -164,7 +164,7 @@ super_cv_test_start:
     ; by running almost exclusively from RAM and expose EOS at the top alongside OS7.
 
     ld bc, 10
-    ld de, MODE1_PATTERN_NAME_TABLE + 17 + 32
+    ld de, MODE1_PATTERN_NAME_TABLE + 16 + 32
     ld hl, TEST_ONGOING
     call WRITE_VRAM
 
@@ -180,7 +180,7 @@ after_call_24k:
 test_passed_24k:
     ; write text
     ld bc, 11
-    ld de, MODE1_PATTERN_NAME_TABLE + 17 + 32
+    ld de, MODE1_PATTERN_NAME_TABLE + 16 + 32
     ld hl, TEST_PASSED
     call WRITE_VRAM
 
@@ -190,7 +190,7 @@ adam_lower_test_start:
     ; the OS7 BIOS, so we're going to have to switch back to write
     ; our own text after this
     ld bc, 10
-    ld de, MODE1_PATTERN_NAME_TABLE + 17 + 32 + 32
+    ld de, MODE1_PATTERN_NAME_TABLE + 16 + 32 + 32
     ld hl, TEST_ONGOING
     call WRITE_VRAM
 
@@ -214,7 +214,7 @@ test_passed_adam_low:
     
     ; write text
     ld bc, 11
-    ld de, MODE1_PATTERN_NAME_TABLE + 17 + 32 + 32
+    ld de, MODE1_PATTERN_NAME_TABLE + 16 + 32 + 32
     ld hl, TEST_PASSED
     call WRITE_VRAM
 
@@ -237,7 +237,7 @@ cv_test_failed:
 
     ; write text (smashed work area)
     ld bc, 11
-    ld de, MODE1_PATTERN_NAME_TABLE + 17
+    ld de, MODE1_PATTERN_NAME_TABLE + 16
     ld hl, TEST_FAILED
     call WRITE_VRAM
 
@@ -252,7 +252,7 @@ test_failed_24k:
 
     ; write text (smashed work area)
     ld bc, 11
-    ld de, MODE1_PATTERN_NAME_TABLE + 17 + 32
+    ld de, MODE1_PATTERN_NAME_TABLE + 16 + 32
     ld hl, TEST_FAILED
     call WRITE_VRAM
 
@@ -270,7 +270,7 @@ test_failed_adam_low:
     call print_hex
 
     ld bc, 11
-    ld de, MODE1_PATTERN_NAME_TABLE + 17 + 32 + 32
+    ld de, MODE1_PATTERN_NAME_TABLE + 16 + 32 + 32
     ld hl, TEST_FAILED
     call WRITE_VRAM
 
@@ -329,7 +329,8 @@ _basic_memory_test_failed:
     ld c, b ; extend b to 16-bit bc so we can add to hl
     ld b, 0 ; is it faster to just do OR?
     add hl, bc ; have to add 16-bit...
-    ld bc, MODE1_PATTERN_NAME_TABLE ;TILES_BASE
+    ld bc, MODE1_PATTERN_NAME_TABLE ; not necessarily $0000
+    add hl, bc
     pop de
 .endm
 
@@ -372,6 +373,7 @@ print_hex:
     push hl
     calculate_write_address_from_xy
     call SetVDPWriteAddress
+    ; bc is wrecked
     pop hl
 
     ; print the $ first, of course
