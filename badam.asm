@@ -121,9 +121,8 @@ cv_test_start:
     ld hl, TEST_ONGOING
     call WRITE_VRAM
     
-    ; right now we are in the "cartridge" memory map,
-    ; where we still delude ourselves into thinking
-    ; we are a mere colecovision:
+    ; an adam never actually uses this mode - it always gives 24k to CV.
+    ; this test should pass on everything, including original CV.
     ;   0000 - 2000: OS 7
     ;   2001 - 6fff: not for us to use
     ;   7000 - 73ff: colecovision 1k ram
@@ -159,6 +158,9 @@ super_cv_test_start:
     ; ColecoVision and ADAM. In Expansion Module #3, this ROM is
     ; in the ColecoVision. The description of the 32K Intrinsic
     ; RAM also applies to this 24K intrinsic RAM."
+
+    ; This mode is also the default that Adam loads up when you load a CV
+    ; game.
 
     ; This is not to be confused with "Super Games," which have 56K of RAM
     ; by running almost exclusively from RAM and expose EOS at the top alongside OS7.
@@ -292,7 +294,7 @@ basic_memory_test:
     ; returns A - zero if success, one if failed
     ; TODO: Spinner
 _basic_memory_test_loop:
-    ld a, $cc ; TODO: Use more than this
+    ld a, $cc ; TODO: Use more than this basic pattern
     ld (de), a
     ld a, (de)
     cp a, $cc
