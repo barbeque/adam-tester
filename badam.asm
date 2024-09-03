@@ -54,6 +54,11 @@ GAME_NAME: .ascii "LEADEDSOLDER.COM/ADAM TESTER!/2024"
 #define VDP_DATA $be
 #define VDP_REGISTERS $bf
 
+; where we will put things in RAM for the
+; 'upper 32k' test which requires relocation of
+; code.
+#define RAMTEST_TRAMPOLINE_START $0000
+
 .macro put_string xyloc, ptr_string, length
     ld a, VDP_PATTERN_NAMETABLE
     ld de, \xyloc
@@ -206,9 +211,12 @@ test_passed_adam_low:
 
     ; TODO: Figure out why AdamLow is instantly failing (looks like ROM is not getting demapped?)
 
-    ; TODO: ADAM high means we need to copy a kernel into RAM somewhere
-    ; and somehow not obliterate it, but luckily we just tested low to
+adam_upper_test_start:
+    ; testing ADAM high means we need to copy a kernel into RAM somewhere
+    ; as the cartridge is unmapped, but luckily we just tested low to
     ; make sure it works reliably?
+
+    ; first, copy basic_memory_test
 
 spin:
     jr spin
@@ -271,6 +279,30 @@ TEST_FAILED: .text "TEST FAILED"
 TEST_PASSED: .text "TEST PASSED"
 TEST_ONGOING: .text "TESTING..."
 
+test_hiram_kernel:
+    ; kill cartridge
+    ld a, MEMORY_MAPPER_LO_32K_INTRAM | MEMORY_MAPPER_HI_32K_INTRAM
+    out (ADAM_MEMORY_MAPPER_PORT), a
+
+    ; begin the test
+    ld de, $8000
+    ld bc, $7fff
+    ; Figure out offset to reach test_hiram_kernel_done from here
+    ; ...then add RAMTEST_TRAMPOLINE_START so the address makes sense
+    ; when we get there.
+    ld hl, ((test_hiram_kernel_done - $) + RAMTEST_TRAMPOLINE_START)
+    ; relative jump makes this one easy
+    jr basic_memory_test
+
+test_hiram_kernel_done:
+    ; get back to the calling code in ROM
+    ld b, a ; keep it safe
+    ; kill hi memory, returning cartridge but keeping us in loram
+    ld a, MEMORY_MAPPER_LO_32K_INTRAM | MEMORY_MAPPER_HI_CART
+    out (ADAM_MEMORY_MAPPER_PORT), a
+    ; put the value of a back so the ROM knows if we succeeded
+    ld a, b
+
 basic_memory_test:
     ; de - start of range
     ; bc - length of range
@@ -303,6 +335,7 @@ _basic_memory_test_end:
 _basic_memory_test_failed:
     ld a, 1 ; failure
     jp (hl)
+_basic_memory_test_terminator: ; for when we copy it into RAM
 
 .macro calculate_write_address_from_xy
     ; Sets the write address based on a tile position on screen.
