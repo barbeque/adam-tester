@@ -289,7 +289,8 @@ test_hiram_kernel:
     ld bc, $7fff
     ; Figure out offset to reach test_hiram_kernel_done from here
     ; ...then add RAMTEST_TRAMPOLINE_START so the address makes sense
-    ; when we get there.
+    ; when we get there. This actually seems to have worked out
+    ; so I feel like an assembly superstar here.
     ld hl, ((test_hiram_kernel_done - $) + RAMTEST_TRAMPOLINE_START)
     ; relative jump makes this one easy
     jr basic_memory_test
