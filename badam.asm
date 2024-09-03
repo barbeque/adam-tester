@@ -125,7 +125,7 @@ before_call_cv:
     jp basic_memory_test
 after_call_cv:
     cp a, $1
-    jr z, cv_test_failed
+    jp z, cv_test_failed
     ei
 cv_test_passed:
     ; write text
@@ -166,7 +166,7 @@ before_call_24k:
     jp basic_memory_test
 after_call_24k:
     cp a, $1
-    jr z, test_failed_24k
+    jp z, test_failed_24k
     ei
 test_passed_24k:
     ; write text
@@ -196,7 +196,7 @@ before_call_adam_low:
     jp basic_memory_test
 after_call_adam_low:
     cp a, $1
-    jr z, test_failed_adam_low
+    jp z, test_failed_adam_low
     ei
 test_passed_adam_low:
     ; get back to OS7
@@ -209,14 +209,45 @@ test_passed_adam_low:
     ld hl, TEST_PASSED
     call WRITE_VRAM
 
-    ; TODO: Figure out why AdamLow is instantly failing (looks like ROM is not getting demapped?)
-
 adam_upper_test_start:
+    ; tell them the test is ongoing in case it freezes
+    ld bc, 10
+    ld de, MODE1_PATTERN_NAME_TABLE + 16 + 32 + 32 + 32
+    ld hl, TEST_ONGOING
+    call WRITE_VRAM
+
     ; testing ADAM high means we need to copy a kernel into RAM somewhere
     ; as the cartridge is unmapped, but luckily we just tested low to
     ; make sure it works reliably?
 
-    ; first, copy basic_memory_test
+    ; switch into low adam mode but keep the cart so we can keep executing
+    ld a, MEMORY_MAPPER_LO_32K_INTRAM | MEMORY_MAPPER_HI_CART
+    out (ADAM_MEMORY_MAPPER_PORT), a
+
+    ; first, copy test_hiram_kernel to _basic_memory_test_terminator to RAM
+    ld hl, test_hiram_kernel
+    ld de, RAMTEST_TRAMPOLINE_START
+    ld bc, _basic_memory_test_terminator - test_hiram_kernel
+    ldir
+
+    ; now make sure it worked in the debugger before you go any further
+    jp RAMTEST_TRAMPOLINE_START
+
+adam_upper_test_finished:
+    ; returned from RAM! holy crap we made it
+    ; now check the value of A
+    cp a, $1
+    jr z, test_failed_adam_hi
+    ei
+test_passed_adam_hi:
+    ; get back to OS7
+    ld a, MEMORY_MAPPER_LO_OS7_24K_RAM | MEMORY_MAPPER_HI_CART
+    out (ADAM_MEMORY_MAPPER_PORT), a
+    ; write text
+    ld bc, 11
+    ld de, MODE1_PATTERN_NAME_TABLE + 16 + 32 + 32 + 32
+    ld hl, TEST_PASSED
+    call WRITE_VRAM
 
 spin:
     jr spin
@@ -270,6 +301,25 @@ test_failed_adam_low:
 
     jr spin
 
+test_failed_adam_hi:
+    ; get back to OS7
+    ld a, MEMORY_MAPPER_LO_OS7_24K_RAM | MEMORY_MAPPER_HI_CART
+    out (ADAM_MEMORY_MAPPER_PORT), a
+
+    ; write last loc (still in DE?)
+    ld hl, de
+    ld b, 32 - 5
+    ld c, 3
+    call print_hex
+
+    ; write text (smashed work area)
+    ld bc, 11
+    ld de, MODE1_PATTERN_NAME_TABLE + 16 + 32 + 32 + 32
+    ld hl, TEST_FAILED
+    call WRITE_VRAM
+
+    jr spin
+
 HELLO_WORLD: .text "HELLO WORLD"
 TEST_NAME_COLECOVISION: .text "COLECOVISION 1K"
 TEST_NAME_ADAM_LOWER: .text "ADAM 32K LOWER"
@@ -291,7 +341,7 @@ test_hiram_kernel:
     ; ...then add RAMTEST_TRAMPOLINE_START so the address makes sense
     ; when we get there. This actually seems to have worked out
     ; so I feel like an assembly superstar here.
-    ld hl, ((test_hiram_kernel_done - $) + RAMTEST_TRAMPOLINE_START)
+    ld hl, test_hiram_kernel_done - $ + RAMTEST_TRAMPOLINE_START + 0x0a ; hack
     ; relative jump makes this one easy
     jr basic_memory_test
 
@@ -303,6 +353,8 @@ test_hiram_kernel_done:
     out (ADAM_MEMORY_MAPPER_PORT), a
     ; put the value of a back so the ROM knows if we succeeded
     ld a, b
+    ; now jump back to the ROM
+    jp adam_upper_test_finished
 
 basic_memory_test:
     ; de - start of range
@@ -329,7 +381,7 @@ _basic_memory_test_loop:
     dec bc
     ld a, b
     or c
-    jp nz, _basic_memory_test_loop
+    jr nz, _basic_memory_test_loop
 _basic_memory_test_end:
     ld a, 0
     jp (hl) ; do not rely on the stack being here
