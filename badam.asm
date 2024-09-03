@@ -39,7 +39,7 @@ GAME_NAME: .ascii "LEADEDSOLDER.COM/ADAM TESTER!/2024"
 #define VDP_PATTERN_COLOUR $4
 
 ; adam memory mapper
-#define ADAM_MEMORY_MAPPER_PORT $f7
+#define ADAM_MEMORY_MAPPER_PORT $7f
 #define MEMORY_MAPPER_LO_EOS 0b00
 #define MEMORY_MAPPER_LO_32K_INTRAM 0b01
 #define MEMORY_MAPPER_LO_EXTRAM 0b10
@@ -94,7 +94,9 @@ entry:
     put_string 96, TEST_NAME_ADAM_UPPER, 14
 
     di
-    ; DANGER: past this point, consider the stack and BIOS work area wrecked
+    ; DANGER: past this point, consider the stack and BIOS work area wrecked,
+    ; which means many "luxury" functions such as PUT_VRAM stop working as
+    ; they have lost their VDP mappings
 
 cv_test_start:
     ; tell them the test is ongoing in case it freezes
