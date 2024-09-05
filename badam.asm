@@ -363,10 +363,10 @@ basic_memory_test:
     ; returns A - zero if success, one if failed
     ; TODO: Spinner
 _basic_memory_test_loop:
-    ld a, $cc ; TODO: Use more than this basic pattern
+    ld a, $aa ; TODO: Use more than this basic pattern
     ld (de), a
     ld a, (de)
-    cp a, $cc
+    cp a, $aa
     jr nz, _basic_memory_test_failed
 
     ld a, $55
