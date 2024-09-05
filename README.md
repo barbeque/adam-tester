@@ -1,6 +1,8 @@
 # ADAM tester
 Test software for diagnosing problems with [the Coleco ADAM home computer](https://en.wikipedia.org/wiki/Coleco_Adam).
 
+![RAM test in progress](/images/ram-test-in-progress.png)
+
 ## Current Status
 Features:
  - (New) RAM tester (ColecoVision 1K, ColecoVision 24K, ADAM 32K lower, ADAM 32K upper) with page switching
