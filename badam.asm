@@ -369,10 +369,22 @@ _basic_memory_test_loop:
     cp a, $aa
     jr nz, _basic_memory_test_failed
 
+    ld a, $ff ; TODO: Use more than this basic pattern
+    ld (de), a
+    ld a, (de)
+    cp a, $ff
+    jr nz, _basic_memory_test_failed
+
     ld a, $55
     ld (de), a
     ld a, (de)
     cp a, $55
+    jr nz, _basic_memory_test_failed
+
+    ld a, $00 ; TODO: Use more than this basic pattern
+    ld (de), a
+    ld a, (de)
+    cp a, $00
     jr nz, _basic_memory_test_failed
 
     ; TODO: Check for mirroring here
