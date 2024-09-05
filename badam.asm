@@ -1,8 +1,8 @@
 .org $8000
 
 ; standard colecovision header
-;HEADER_GAME: .db $aa, $55
-HEADER_TEST: .db $55, $aa
+HEADER_GAME: .db $aa, $55
+;HEADER_TEST: .db $55, $aa
 
 SPRITE_TABLE: .dw $0000
 SPRITE_ORDER_TABLE: .dw $0000
